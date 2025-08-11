@@ -1,113 +1,105 @@
 # SkinSight — Static AI Skin Analyzer
 
-SkinSight is a **static, client-side web application** that lets users capture or upload a skin photo, answer a few basic questions, and receive an **AI-assisted skin analysis** using their own API key for **OpenAI** or **Google Gemini**.
-
-> **Disclaimer:** This tool is for **informational purposes only** and is **not a substitute for professional medical advice, diagnosis, or treatment**.
-
-## Features
-
-* **Entirely client-side** — no server needed, API keys are never uploaded.
-* **Multi-step UI** with:
-
-  * Intro & consent
-  * Skin questionnaire (age, skin tone, concerns)
-  * Photo capture via camera or file upload
-  * AI provider & API key entry
-  * Review & confirmation
-* **AI analysis** using OpenAI Chat Completions or Google Gemini.
-* **Privacy-first design**: Your image and API key never leave your browser except for direct AI provider API requests.
-
-## How It Works
-
-1. User provides **age, skin tone, concerns**, and **consent**.
-2. User captures or uploads a **skin image**.
-3. User selects an **AI provider** and enters their **API key**.
-4. The app builds a structured **analysis prompt** containing user context and the base64-encoded image.
-5. The request is sent **directly from the browser** to the AI provider's API.
-6. The AI returns **JSON-formatted** results, displayed to the user.
-
-## Demo
-
-This app runs **entirely in a browser**. To test it:
-
-1. Download this repository.
-2. Open `index.html` in a modern browser.
-3. Provide your own OpenAI or Google Gemini API key.
-4. Follow the step-by-step UI to receive an analysis.
-
-## Requirements
-
-* Modern web browser with camera access support.
-* An API key for **OpenAI** or **Google Gemini**.
-* Basic understanding that this is **not a medical tool**.
-
-## File Structure
-
-```
-index.html  # Single-file app containing HTML, CSS, and JavaScript
-```
-
-## Using OpenAI API
-
-1. Get an API key from [OpenAI Platform](https://platform.openai.com/).
-2. Select **OpenAI** in the "AI Provider" dropdown.
-3. Enter your API key in the provided field.
-4. Complete the steps and receive your skin analysis.
-
-## Using Google Gemini API
-
-1. Get an API key from [Google AI Studio](https://makersuite.google.com/).
-2. Select **Google Gemini** in the "AI Provider" dropdown.
-3. Enter your API key in the provided field.
-4. Complete the steps and receive your skin analysis.
-
-## Security & Privacy
-
-* **No backend server**: All processing is done in the browser.
-* **Your API key stays in your browser**.
-* **Images are only sent to your selected AI provider**.
-* **No data is stored or logged** by this app.
-
-## Example JSON Output
-
-```json
-{
-  "summary": "Mild acne on the forehead",
-  "observations": ["Slight redness", "Small closed comedones"],
-  "likely_causes": ["Hormonal changes", "Excess sebum production"],
-  "recommendations": [
-    "Cleanse twice daily with a gentle cleanser",
-    "Use a light, non-comedogenic moisturizer",
-    "Consider incorporating salicylic acid treatment"
-  ],
-  "follow_up": "Reassess after 4 weeks"
-}
-```
-
-## Installation & Local Use
-
-1. Clone or download this repository.
-
-```bash
-git clone https://github.com/yourusername/skinsight.git
-```
-
-2. Open `index.html` in your browser.
-3. Follow on-screen steps.
-
-*No build process is required*—the app uses **Tailwind CDN** and runs as a single HTML file.
-
-## Roadmap
-
-* [ ] Add image preprocessing (lighting normalization).
-* [ ] Improve JSON parsing robustness.
-* [ ] Support additional AI providers.
-
-## License
-
-MIT License — feel free to use, modify, and distribute.
+SkinSight is a lightweight, modern web application designed to guide users through a skin health questionnaire, capture an image of the affected area, and analyze it using AI-based image recognition systems such as ChatGPT or Gemini. Built with **TailwindCSS** for styling and **Framer Motion** for smooth animations, this app delivers a clean, responsive, and user-friendly experience.
 
 ---
 
-**Note:** Always consult a licensed dermatologist for any medical concerns.
+## 🚀 Features
+
+* **Interactive Questionnaire** — Gathers relevant information about the user's skin concerns.
+* **Guided Photo Capture** — Instructs users on how to take a clear, diagnostic-quality image.
+* **AI-Powered Analysis** — Processes the captured image using AI models.
+* **Modern UI/UX** — Minimalistic, mobile-friendly design with smooth animations.
+* **Static Deployment** — Runs entirely in the browser, no backend required.
+
+---
+
+## 📂 Repository
+
+The main `index.html` file for this project is hosted here:
+[https://github.com/Arctic-Bio/Free-Skin-Check/blob/main/index.html](https://github.com/Arctic-Bio/Free-Skin-Check/blob/main/index.html)
+
+This project was created by **arctic-fox**.
+
+---
+
+## 📦 Installation & Usage
+
+### 1️⃣ Clone the repository
+
+```bash
+ git clone https://github.com/Arctic-Bio/Free-Skin-Check.git
+ cd Free-Skin-Check
+```
+
+### 2️⃣ Open the App
+
+Simply open `index.html` in your preferred browser:
+
+```bash
+ open index.html
+```
+
+Or just double-click the file in your file explorer.
+
+---
+
+## 🌐 Deployment
+
+This app can be deployed to any static hosting service:
+
+* **GitHub Pages**
+* **Netlify**
+* **Vercel**
+* **Firebase Hosting**
+
+Example using GitHub Pages:
+
+1. Push your changes to the `main` branch.
+2. Enable GitHub Pages in your repository settings.
+3. Your site will be live at `https://<username>.github.io/<repo-name>/`.
+
+---
+
+## ⚖️ License & Attribution Requirement
+
+This project is licensed under the MIT License. **However, if this app is used in any public-facing or professional setting, visible attribution is required.**
+
+**Attribution Rules:**
+
+* You must include a visible link to the GitHub repository at the bottom of the site.
+* The link must read: *"Powered by SkinSight — Created by Arctic-Fox"* and link to:
+  [https://github.com/Arctic-Bio/Free-Skin-Check/blob/main/index.html](https://github.com/Arctic-Bio/Free-Skin-Check/blob/main/index.html)
+
+---
+
+## 📸 Example Attribution
+
+```html
+<footer class="text-center p-4">
+  Powered by <a href="https://github.com/Arctic-Bio/Free-Skin-Check/blob/main/index.html" class="underline">SkinSight — Created by Arctic-Fox</a>
+</footer>
+```
+
+---
+
+## ⚠️ Disclaimer
+
+This application is **not** a substitute for professional medical advice, diagnosis, or treatment. Always seek the guidance of a qualified healthcare provider with any questions you may have regarding a medical condition.
+
+---
+
+## 💡 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+---
+
+## 📬 Contact
+
+For questions, suggestions, or collaborations, reach out via GitHub: [arctic-fox](https://github.com/Arctic-Bio)
+
+---
+
+**© Arctic-Fox — 2025**
 

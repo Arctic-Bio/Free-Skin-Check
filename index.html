@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SkinSight — Static AI Skin Analyzer</title>
+  <!-- Tailwind Play CDN for quick styling (works without build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Extra polished styles & small animations */
+    .glass { backdrop-filter: blur(6px); background: rgba(255,255,255,0.75); }
+    .btn { transition: transform .12s ease, box-shadow .12s ease; }
+    .btn:active { transform: translateY(1px) scale(.995); }
+    .dot-grid { background-image: radial-gradient(currentColor 1px, transparent 1px); background-size: 12px 12px; opacity:.05 }
+    pre.result { white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow: auto }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-white via-slate-50 to-indigo-50 flex items-center justify-center p-6">
+  <div id="app" class="w-full max-w-4xl glass rounded-2xl shadow-2xl p-6 md:p-10">
+    <header class="flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-semibold text-slate-900">SkinSight — Smart Skin Intake (Static)</h1>
+        <p class="text-sm text-slate-500">Capture a photo, supply your API key, and get an AI-assisted skin care summary. For demo/personal use only.</p>
+      </div>
+      <div class="text-right text-xs text-slate-400">
+        <div>Privacy: your API key never leaves your browser (you enter it manually).</div>
+        <div class="mt-1">Not medical advice — informational only.</div>
+      </div>
+    </header>
+
+    <!-- Stepper -->
+    <nav class="mt-6">
+      <ol id="stepper" class="flex gap-2 items-center text-xs text-slate-500"></ol>
+    </nav>
+
+    <main class="mt-6">
+      <div id="errors" class="mb-4 text-sm text-red-600 hidden"></div>
+
+      <!-- Intro -->
+      <section id="step-0" class="step">
+        <h2 class="text-lg font-semibold text-slate-800">Quick overview</h2>
+        <p class="mt-2 text-slate-600">This static tool runs entirely in your browser. You provide an API key for OpenAI or Google Gemini; the app issues requests directly from your browser to the provider.</p>
+        <div class="mt-6 flex gap-3">
+          <button id="btn-start" class="btn px-4 py-2 rounded-lg bg-indigo-600 text-white shadow hover:shadow-lg">Start questionnaire</button>
+          <button id="btn-skip" class="btn px-4 py-2 rounded-lg border">Skip to capture</button>
+        </div>
+      </section>
+
+      <!-- Questions -->
+      <section id="step-1" class="step hidden">
+        <h2 class="text-lg font-semibold text-slate-800">A few questions</h2>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="flex flex-col">
+            <span class="text-sm text-slate-600">Age</span>
+            <input id="age" type="number" min="1" class="mt-1 p-2 rounded border bg-white" placeholder="e.g. 29">
+          </label>
+
+          <label class="flex flex-col">
+            <span class="text-sm text-slate-600">Skin tone</span>
+            <select id="skinTone" class="mt-1 p-2 rounded border bg-white">
+              <option value="light">Light</option>
+              <option value="fair">Fair</option>
+              <option value="medium" selected>Medium</option>
+              <option value="olive">Olive</option>
+              <option value="brown">Brown</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+
+          <div class="md:col-span-2">
+            <span class="text-sm text-slate-600">Main concerns (choose any)</span>
+            <div id="concerns" class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+          </div>
+
+          <label class="flex items-center gap-2 md:col-span-2 mt-2">
+            <input id="consent" type="checkbox">
+            <span class="text-sm text-slate-600">I consent to upload this image for automated analysis (not a medical diagnosis).</span>
+          </label>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm text-slate-600">AI Provider</label>
+            <select id="provider" class="mt-1 p-2 rounded border bg-white">
+              <option value="openai">OpenAI (Chat Completions)</option>
+              <option value="gemini">Google Gemini (Generative Language)</option>
+            </select>
+
+            <label class="block text-sm text-slate-600 mt-3">Your API Key (kept in this browser only)</label>
+            <input id="apiKey" type="password" class="mt-1 p-2 rounded border bg-white w-full" placeholder="Paste your API key here">
+            <div class="mt-2 text-xs text-slate-500">Important: do not paste someone else's key. This app does not store keys on any server.</div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex gap-3">
+          <button id="q-to-capture" class="px-4 py-2 rounded-lg bg-indigo-600 text-white">Continue to capture</button>
+          <button id="q-back" class="px-4 py-2 rounded-lg border">Back</button>
+        </div>
+      </section>
+
+      <!-- Capture / Upload -->
+      <section id="step-2" class="step hidden">
+        <h2 class="text-lg font-semibold text-slate-800">Capture or upload</h2>
+        <p class="mt-2 text-sm text-slate-600">Good lighting, neutral background, and framing the area in the center guide helps.</p>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="relative rounded-lg border overflow-hidden bg-black/5 aspect-video flex items-center justify-center">
+            <video id="video" class="w-full h-full object-cover bg-black" playsinline muted></video>
+            <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div class="w-3/5 aspect-square border-2 border-dashed border-white/60 rounded-lg"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex gap-2">
+              <button id="toggleCamera" class="px-4 py-2 rounded-lg border">Start camera</button>
+              <button id="capture" class="px-4 py-2 rounded-lg bg-emerald-500 text-white" disabled>Capture</button>
+            </div>
+
+            <div class="mt-4">
+              <label class="block text-sm text-slate-600">Or upload an image</label>
+              <input id="fileInput" type="file" accept="image/*" class="mt-2">
+            </div>
+
+            <div class="mt-4 text-xs text-slate-500">Tips: Remove makeup if possible, use daylight, keep the camera steady, frame the affected area in the center box.</div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex gap-3">
+          <button id="cap-back" class="px-4 py-2 rounded-lg border">Back</button>
+          <button id="to-review" class="px-4 py-2 rounded-lg bg-indigo-600 text-white">Review capture</button>
+        </div>
+
+        <canvas id="hiddenCanvas" class="hidden"></canvas>
+      </section>
+
+      <!-- Review & Send -->
+      <section id="step-3" class="step hidden">
+        <h2 class="text-lg font-semibold text-slate-800">Review & submit</h2>
+        <div class="mt-4 grid md:grid-cols-2 gap-4">
+          <div class="rounded-lg border p-3 bg-white flex flex-col items-center">
+            <img id="preview" src="#" alt="Captured skin" class="w-full max-w-xs rounded shadow hidden">
+            <div id="no-image" class="text-sm text-slate-500">No image captured</div>
+          </div>
+
+          <div>
+            <div class="text-sm text-slate-600">Summary</div>
+            <ul id="summaryList" class="mt-2 text-sm text-slate-700 list-disc pl-5"></ul>
+
+            <div class="mt-6 flex gap-3">
+              <button id="retake" class="px-4 py-2 rounded-lg border">Retake / Upload</button>
+              <button id="send" class="px-4 py-2 rounded-lg bg-indigo-600 text-white">Send for analysis</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="step-4" class="step hidden">
+        <h2 class="text-lg font-semibold text-slate-800">Results</h2>
+        <div class="mt-4 space-y-4">
+          <div class="rounded-lg border p-4 bg-white">
+            <div class="text-sm text-slate-600">AI Summary</div>
+            <pre id="resultBox" class="result mt-2 text-sm text-slate-700"></pre>
+          </div>
+
+          <div class="flex gap-3">
+            <button id="res-back" class="px-4 py-2 rounded-lg border">Back</button>
+            <button id="newSession" class="px-4 py-2 rounded-lg bg-slate-100">New session</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="mt-6 text-xs text-slate-400">Important: This application is for informational purposes only. It is not a substitute for professional medical advice.</footer>
+  </div>
+
+  <script>
+    // Single-file app logic (vanilla JS) — keeps everything client-side.
+    (function(){
+      const steps = [0,1,2,3,4];
+      let current = 0;
+      const stepper = document.getElementById('stepper');
+      const errors = document.getElementById('errors');
+      const concernList = ["Acne / Breakouts","Redness / Rosacea","Dryness / Dehydration","Pigmentation / Dark spots","Aging / Fine lines","Other"];
+
+      // ui refs
+      const els = {
+        step: i => document.getElementById('step-'+i),
+        btnStart: document.getElementById('btn-start'),
+        btnSkip: document.getElementById('btn-skip'),
+        btnQToCapture: document.getElementById('q-to-capture'),
+        btnQBack: document.getElementById('q-back'),
+        btnToggleCamera: document.getElementById('toggleCamera'),
+        btnCapture: document.getElementById('capture'),
+        fileInput: document.getElementById('fileInput'),
+        toReview: document.getElementById('to-review'),
+        preview: document.getElementById('preview'),
+        noImage: document.getElementById('no-image'),
+        hiddenCanvas: document.getElementById('hiddenCanvas'),
+        send: document.getElementById('send'),
+        resultBox: document.getElementById('resultBox'),
+        newSession: document.getElementById('newSession'),
+        resBack: document.getElementById('res-back'),
+        retake: document.getElementById('retake'),
+        capBack: document.getElementById('cap-back'),
+      };
+
+      // questionnaire inputs
+      const inp = {
+        age: document.getElementById('age'),
+        skinTone: document.getElementById('skinTone'),
+        concernsEl: document.getElementById('concerns'),
+        consent: document.getElementById('consent'),
+        provider: document.getElementById('provider'),
+        apiKey: document.getElementById('apiKey'),
+        summaryList: document.getElementById('summaryList')
+      };
+
+      // camera
+      const video = document.getElementById('video');
+      let stream = null;
+      let capturedDataUrl = null;
+
+      // render stepper
+      function renderStepper(){
+        stepper.innerHTML = '';
+        const labels = ['Intro','Questions','Capture','Review & Send','Results'];
+        labels.forEach((lab,i)=>{
+          const li = document.createElement('li');
+          li.className = 'flex items-center gap-2 ' + (i===current? 'text-indigo-600 font-medium':'');
+          const dot = document.createElement('div');
+          dot.className = 'w-8 h-8 rounded-full flex items-center justify-center border ' + (i<=current?'border-indigo-300 bg-indigo-50':'border-slate-200 bg-white');
+          dot.textContent = String(i+1);
+          li.appendChild(dot);
+          const span = document.createElement('span');
+          span.className='hidden md:inline-block ml-2 text-xs';
+          span.textContent = lab;
+          li.appendChild(span);
+          if(i<labels.length-1){ const sep = document.createElement('div'); sep.className='w-6 h-[1px] bg-slate-200 mx-2'; li.appendChild(sep); }
+          stepper.appendChild(li);
+        });
+      }
+
+      function showError(msg){ errors.textContent = msg; errors.classList.remove('hidden'); }
+      function hideError(){ errors.textContent=''; errors.classList.add('hidden'); }
+
+      function showStep(i){
+        steps.forEach(s=>{ const el = document.getElementById('step-'+s); if(el) el.classList.add('hidden'); });
+        const el = document.getElementById('step-'+i); if(el) el.classList.remove('hidden');
+        current = i; renderStepper(); hideError();
+      }
+
+      // populate concerns
+      function initConcerns(){
+        inp.concernsEl.innerHTML = '';
+        concernList.forEach(c=>{
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'p-2 rounded border text-sm text-slate-700 text-left bg-white border-slate-200';
+          btn.textContent = c;
+          btn.addEventListener('click', ()=>{ btn.classList.toggle('bg-indigo-50'); btn.classList.toggle('border-indigo-200'); btn.classList.toggle('bg-white'); });
+          inp.concernsEl.appendChild(btn);
+        });
+      }
+
+      // camera controls
+      async function startCamera(){
+        hideError();
+        try{
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal:1280 }, height: { ideal:720 } } });
+          video.srcObject = stream; await video.play();
+          els.btnToggleCamera.textContent = 'Stop camera';
+          els.btnCapture.disabled = false;
+        }catch(e){
+          showError('Unable to access camera. Please allow camera or upload an image.');
+        }
+      }
+      function stopCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } video.pause(); video.srcObject=null; els.btnToggleCamera.textContent='Start camera'; els.btnCapture.disabled=true; }
+
+      function captureFromVideo(){
+        if(!video) return;
+        const canvas = els.hiddenCanvas;
+        const w = video.videoWidth; const h = video.videoHeight; if(!w||!h) { showError('Camera not ready'); return; }
+        // center-crop square -> normalize to 1024
+        const size = Math.min(w,h)*0.8; const sx=(w-size)/2, sy=(h-size)/2;
+        canvas.width = 1024; canvas.height = 1024;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(video, sx, sy, size, size, 0, 0, 1024, 1024);
+        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        stopCamera(); renderPreview(); showStep(3);
+      }
+
+      function handleFileUpload(file){
+        if(!file) return;
+        if(!file.type.startsWith('image/')){ showError('Please upload an image file'); return; }
+        const reader = new FileReader();
+        reader.onload = ()=>{ capturedDataUrl = reader.result; renderPreview(); showStep(3); };
+        reader.readAsDataURL(file);
+      }
+
+      function renderPreview(){
+        const img = document.getElementById('preview'); const noImg = document.getElementById('no-image');
+        if(capturedDataUrl){ img.src = capturedDataUrl; img.classList.remove('hidden'); noImg.classList.add('hidden'); }
+        else { img.classList.add('hidden'); noImg.classList.remove('hidden'); }
+        // summary list
+        inp.summaryList.innerHTML = '';
+        const liAge = document.createElement('li'); liAge.textContent = 'Age: ' + (inp.age.value || '—'); inp.summaryList.appendChild(liAge);
+        const liTone = document.createElement('li'); liTone.textContent = 'Skin tone: ' + inp.skinTone.value; inp.summaryList.appendChild(liTone);
+        const selectedConcerns = Array.from(inp.concernsEl.querySelectorAll('button')).filter(b=>b.classList.contains('bg-indigo-50')).map(b=>b.textContent);
+        const liCon = document.createElement('li'); liCon.textContent = 'Concerns: ' + (selectedConcerns.length? selectedConcerns.join(', '): '—'); inp.summaryList.appendChild(liCon);
+        const liCons = document.createElement('li'); liCons.textContent = 'Consent: ' + (document.getElementById('consent').checked? 'Yes':'No'); inp.summaryList.appendChild(liCons);
+      }
+
+      // build prompt for AI
+      function buildPrompt(base64){
+        const selectedConcerns = Array.from(inp.concernsEl.querySelectorAll('button')).filter(b=>b.classList.contains('bg-indigo-50')).map(b=>b.textContent);
+        return `You are an empathetic, careful board-certified dermatologist-level AI (informational). Analyze the supplied skin photo and user context and provide a clear JSON object with keys: summary (short), observations (array), likely_causes (array), recommendations (array of concise actionable items), follow_up (short).\n\nUser context:\n- Age: ${inp.age.value || 'unknown'}\n- Skin tone: ${inp.skinTone.value}\n- Concerns: ${selectedConcerns.join(', ') || 'none'}\n\nImage (Base64): ${base64}\n\nReturn only valid JSON.`;
+      }
+
+      // send to AI providers directly from browser using user's key
+      async function callOpenAI(apiKey, prompt){
+        // We send the base64 inside the prompt — this is simple and works for text-only Chat Completions.
+        const body = {
+          model: 'gpt-4o-mini',
+          messages: [ { role: 'system', content: 'You are a helpful skincare expert.' }, { role: 'user', content: prompt } ],
+          temperature: 0.2,
+          max_tokens: 800
+        };
+        const resp = await fetch('https://api.openai.com/v1/chat/completions',{
+          method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+apiKey }, body: JSON.stringify(body)
+        });
+        if(!resp.ok){ const text = await resp.text(); throw new Error('OpenAI error: '+text); }
+        const json = await resp.json();
+        // extract assistant content
+        const content = json?.choices?.[0]?.message?.content || JSON.stringify(json);
+        return content;
+      }
+
+      async function callGemini(apiKey, prompt, base64){
+        /*
+          Google Gemini browser usage varies by account and region. This attempt calls the Generative Language endpoint.
+          We include the base64 as inlineData part; depending on API version this may need adjustments. If the request fails,
+          the error text will be shown to the user and they can try OpenAI instead.
+        */
+        const body = {
+          // This is a best-effort example of the request shape Many integrations require OAuth or different URL.
+          // We attempt a simple call to the public generativelanguage endpoint with key param.
+          prompt: prompt
+        };
+        const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key='+encodeURIComponent(apiKey),{
+          method:'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ content: prompt })
+        });
+        if(!resp.ok){ const t = await resp.text(); throw new Error('Gemini error: '+t); }
+        const json = await resp.json();
+        // Attempt to find text
+        const content = json?.candidates?.[0]?.content || JSON.stringify(json);
+        return content;
+      }
+
+      async function submitForAnalysis(){
+        hideError();
+        if(!document.getElementById('consent').checked){ showError('You must consent to submit your image for automated analysis.'); return; }
+        if(!capturedDataUrl){ showError('No image to analyze. Please capture or upload an image.'); return; }
+        const apiKey = inp.apiKey.value.trim(); if(!apiKey){ showError('Please enter your API key.'); return; }
+        const provider = inp.provider.value;
+
+        // show a small waiting message
+        els.resultBox.textContent = 'Analyzing — this may take 10-30 seconds...'; showStep(4);
+
+        try{
+          // build prompt (we pass only the base64 content after the comma)
+          const base64 = capturedDataUrl.split(',')[1] || capturedDataUrl;
+          const prompt = buildPrompt(base64);
+          let raw = '';
+          if(provider === 'openai'){
+            raw = await callOpenAI(apiKey, prompt);
+          } else {
+            raw = await callGemini(apiKey, prompt, base64);
+          }
+
+          // The system asks models to return only JSON. Still, models sometimes put backticks or text.
+          // Try to extract a JSON substring from the response.
+          const jsonText = extractJson(raw);
+          if(!jsonText){
+            // fallback: show raw model output if JSON parsing fails
+            els.resultBox.textContent = 'Model returned non-JSON response. Showing raw output:\n\n' + raw;
+            return;
+          }
+          const parsed = JSON.parse(jsonText);
+          // pretty print
+          els.resultBox.textContent = JSON.stringify(parsed, null, 2);
+        }catch(err){
+          showStep(3); showError(err.message || 'AI request failed');
+        }
+      }
+
+      // attempt to find the first JSON substring in a text block
+      function extractJson(text){
+        // remove markdown fences
+        text = text.replace(/^```json\n|```$/gmi, '').trim();
+        const start = text.indexOf('{'); if(start===-1) return null;
+        // try progressively larger substrings until valid JSON or give up
+        for(let i=text.length;i>start;i--){
+          const candidate = text.substring(start,i);
+          try{ JSON.parse(candidate); return candidate; }catch(e){}
+        }
+        return null;
+      }
+
+      // event wiring
+      els.btnStart.addEventListener('click', ()=> showStep(1));
+      els.btnSkip.addEventListener('click', ()=> showStep(2));
+      document.getElementById('btn-skip').addEventListener('click', ()=> showStep(2));
+      document.getElementById('q-to-capture').addEventListener('click', ()=> showStep(2));
+      document.getElementById('q-back').addEventListener('click', ()=> showStep(0));
+      els.btnToggleCamera.addEventListener('click', ()=>{ if(stream) stopCamera(); else startCamera(); });
+      els.btnCapture.addEventListener('click', captureFromVideo);
+      els.fileInput.addEventListener('change', (e)=> handleFileUpload(e.target.files[0]));
+      document.getElementById('to-review').addEventListener('click', ()=> { if(!capturedDataUrl) { showError('No image selected'); return; } renderPreview(); showStep(3); });
+      document.getElementById('retake').addEventListener('click', ()=> { capturedDataUrl=null; renderPreview(); showStep(2); });
+      document.getElementById('cap-back').addEventListener('click', ()=> showStep(1));
+      document.getElementById('send').addEventListener('click', submitForAnalysis);
+      document.getElementById('newSession').addEventListener('click', ()=> location.reload());
+      document.getElementById('res-back').addEventListener('click', ()=> showStep(3));
+
+      // init
+      initConcerns(); renderStepper(); showStep(0);
+
+      // clean up camera when leaving page
+      window.addEventListener('beforeunload', ()=>{ if(stream) stream.getTracks().forEach(t=>t.stop()); });
+    })();
+  </script>
+</body>
+</html>

@@ -1,192 +1,113 @@
----
+# SkinSight — Static AI Skin Analyzer
 
-````markdown
-# 🧴 SkinSight — Smart Skin Intake (React + Tailwind + Framer Motion)
+SkinSight is a **static, client-side web application** that lets users capture or upload a skin photo, answer a few basic questions, and receive an **AI-assisted skin analysis** using their own API key for **OpenAI** or **Google Gemini**.
 
-> **Guided skin analysis intake tool** with questionnaire, live camera capture, and AI-assisted result display.  
-> **Disclaimer:** This app is for informational purposes only and **not** a medical diagnosis.
+> **Disclaimer:** This tool is for **informational purposes only** and is **not a substitute for professional medical advice, diagnosis, or treatment**.
 
-![SkinSight Demo](docs/demo-screenshot.png)
+## Features
 
----
+* **Entirely client-side** — no server needed, API keys are never uploaded.
+* **Multi-step UI** with:
 
-## 📌 Features
+  * Intro & consent
+  * Skin questionnaire (age, skin tone, concerns)
+  * Photo capture via camera or file upload
+  * AI provider & API key entry
+  * Review & confirmation
+* **AI analysis** using OpenAI Chat Completions or Google Gemini.
+* **Privacy-first design**: Your image and API key never leave your browser except for direct AI provider API requests.
 
-- **Guided multi-step flow** — Questionnaire → Camera/Upload → Review → AI Results
-- **Live camera integration** with an on-screen capture guide
-- **Image upload** option for users without camera access
-- **Framer Motion animations** for smooth transitions
-- **TailwindCSS UI** for modern, responsive design
-- **Secure server-side AI integration** (client never calls AI APIs directly)
-- **Privacy-focused** — image processing handled by your own backend
+## How It Works
 
----
+1. User provides **age, skin tone, concerns**, and **consent**.
+2. User captures or uploads a **skin image**.
+3. User selects an **AI provider** and enters their **API key**.
+4. The app builds a structured **analysis prompt** containing user context and the base64-encoded image.
+5. The request is sent **directly from the browser** to the AI provider's API.
+6. The AI returns **JSON-formatted** results, displayed to the user.
 
-## 🛠 Tech Stack
+## Demo
 
-- **React** (TypeScript)
-- **TailwindCSS**
-- **Framer Motion** for animations
-- **Browser MediaDevices API** for camera access
-- **Fetch API + FormData** for backend communication
+This app runs **entirely in a browser**. To test it:
 
----
+1. Download this repository.
+2. Open `index.html` in a modern browser.
+3. Provide your own OpenAI or Google Gemini API key.
+4. Follow the step-by-step UI to receive an analysis.
 
-## 🚀 Getting Started
+## Requirements
 
-### 1️⃣ Prerequisites
-Make sure you have installed:
-- **Node.js** (v18+ recommended)
-- **npm** or **yarn**
-- A React project set up with **TailwindCSS** and **Framer Motion**
+* Modern web browser with camera access support.
+* An API key for **OpenAI** or **Google Gemini**.
+* Basic understanding that this is **not a medical tool**.
 
----
+## File Structure
 
-### 2️⃣ Installation
+```
+index.html  # Single-file app containing HTML, CSS, and JavaScript
+```
 
-Clone the repo:
+## Using OpenAI API
+
+1. Get an API key from [OpenAI Platform](https://platform.openai.com/).
+2. Select **OpenAI** in the "AI Provider" dropdown.
+3. Enter your API key in the provided field.
+4. Complete the steps and receive your skin analysis.
+
+## Using Google Gemini API
+
+1. Get an API key from [Google AI Studio](https://makersuite.google.com/).
+2. Select **Google Gemini** in the "AI Provider" dropdown.
+3. Enter your API key in the provided field.
+4. Complete the steps and receive your skin analysis.
+
+## Security & Privacy
+
+* **No backend server**: All processing is done in the browser.
+* **Your API key stays in your browser**.
+* **Images are only sent to your selected AI provider**.
+* **No data is stored or logged** by this app.
+
+## Example JSON Output
+
+```json
+{
+  "summary": "Mild acne on the forehead",
+  "observations": ["Slight redness", "Small closed comedones"],
+  "likely_causes": ["Hormonal changes", "Excess sebum production"],
+  "recommendations": [
+    "Cleanse twice daily with a gentle cleanser",
+    "Use a light, non-comedogenic moisturizer",
+    "Consider incorporating salicylic acid treatment"
+  ],
+  "follow_up": "Reassess after 4 weeks"
+}
+```
+
+## Installation & Local Use
+
+1. Clone or download this repository.
+
 ```bash
 git clone https://github.com/yourusername/skinsight.git
-cd skinsight
-````
-
-Install dependencies:
-
-```bash
-npm install
-# or
-yarn install
 ```
+
+2. Open `index.html` in your browser.
+3. Follow on-screen steps.
+
+*No build process is required*—the app uses **Tailwind CDN** and runs as a single HTML file.
+
+## Roadmap
+
+* [ ] Add image preprocessing (lighting normalization).
+* [ ] Improve JSON parsing robustness.
+* [ ] Support additional AI providers.
+
+## License
+
+MIT License — feel free to use, modify, and distribute.
 
 ---
 
-### 3️⃣ TailwindCSS Setup
+**Note:** Always consult a licensed dermatologist for any medical concerns.
 
-If TailwindCSS is not yet installed in your project:
-
-```bash
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-```
-
-Edit `tailwind.config.js`:
-
-```js
-module.exports = {
-  content: [
-    "./src/**/*.{js,ts,jsx,tsx}"
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-```
-
-Import Tailwind in `src/index.css`:
-
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
----
-
-### 4️⃣ Add the Component
-
-Place the provided **SkinAIApp** component into your `src/components` folder:
-
-```tsx
-// src/components/SkinAIApp.tsx
-// (Paste the provided component code here)
-```
-
-Import and use it in your `App.tsx`:
-
-```tsx
-import SkinAIApp from "./components/SkinAIApp";
-
-export default function App() {
-  return <SkinAIApp />;
-}
-```
-
----
-
-### 5️⃣ Backend API Setup
-
-The component expects an endpoint:
-
-```
-POST /api/analyze
-```
-
-Form data sent:
-
-* `image` — JPEG blob (captured or uploaded)
-* `age` — number
-* `skinTone` — string
-* `concerns` — JSON array string
-
-Example Express backend:
-
-```js
-import express from "express";
-import multer from "multer";
-
-const app = express();
-const upload = multer();
-
-app.post("/api/analyze", upload.single("image"), async (req, res) => {
-  // Handle file: req.file
-  // Handle fields: req.body.age, req.body.skinTone, req.body.concerns
-  // Send image to your AI model (server-side only)
-  res.json({ message: "AI analysis complete", exampleResult: {} });
-});
-
-app.listen(3001, () => console.log("Backend running on port 3001"));
-```
-
----
-
-## 🖥 Usage
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Open **[http://localhost:5173](http://localhost:5173)** (Vite) or your dev server URL.
-
----
-
-## 📷 Capture Flow
-
-1. **Intro** → Overview & start
-2. **Questionnaire** → Age, skin tone, concerns
-3. **Camera/Upload** → Live preview or file upload
-4. **Review & Send** → Confirm and submit
-5. **Results** → Display AI output from backend
-
----
-
-## ⚠ Privacy & Disclaimer
-
-* Images are **not sent directly to third-party APIs** from the browser.
-* All AI calls must be **proxied through your backend** to protect user data.
-* This app is for **informational purposes only** and not a substitute for medical advice.
-
----
-
-## 📄 License
-
-MIT License © 2025 \[Arctic-Fox]
-
-```
-
----
-
-If you want, I can also make a **GitHub-optimized version** with emoji step markers, badges, and a **live demo GIF** section so it feels like a polished open-source release. Would you like me to do that next?
-```
